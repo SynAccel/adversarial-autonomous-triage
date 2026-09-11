@@ -1,2 +1,23 @@
-# adversarial-autonomous-triage
-Lab and research on adversarial robustness of AI-enabled autonomous triage for security alerts
+# Adversarially Robust Autonmous Triage
+
+  This repo contains the lab, test cases, and scripts for SynAccel's research on adversarial robustness of AI-enabled autonomous triage for security alerts.
+
+## Goal 
+
+  Study how adversarial inputs affect an AI-based triage system's risk ratings and recommended actions, and evaluate design patters that improve robustness.
+
+## Components 
+
+- `lab/triage_service/` – Reference implementation of an AI‑enabled triage system (alert summarizer + risk scorer + action recommender).
+- `lab/test_cases/` – Adversarial test cases (JSON/CSV) with intended attacker goals.
+- `scripts/run_tests.py` – Test runner that executes all test cases against the triage service.
+- `scripts/compute_metrics.py` – Computes manipulation success rates, omission rates, and other metrics.
+- `docs/` – Research documentation and draft paper sections.
+
+## Status
+
+Work in progress by SynAccel (applied security research).
+
+## License
+
+(MIT)
