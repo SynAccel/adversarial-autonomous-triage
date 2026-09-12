@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+
+lab/results/*.jsonl
+lab/results/*_metrics.json
