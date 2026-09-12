@@ -6,6 +6,11 @@
 
   Study how adversarial inputs affect an AI-based triage system's risk ratings and recommended actions, and evaluate design patters that improve robustness.
 
+## Mission
+
+Measuring whether attacker-controlled text in logs, ticket notes, or telemetry can cause an LLM-based alert-triage assistant to under-rate, mishandle, or 
+hide evidence from a real security event—and then testing defenses that reduce that influence.
+
 ## Components 
 
 - `lab/triage_service/` – Reference implementation of an AI‑enabled triage system (alert summarizer + risk scorer + action recommender).
