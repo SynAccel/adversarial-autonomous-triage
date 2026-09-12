@@ -8,18 +8,45 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from lab.triage_service.triage import triage_event
 
-TEST_CASES_PATH = PROJECT_ROOT / "lab" / "test_cases" / "test_cases.json"
+TEST_CASE_FILES = [
+    PROJECT_ROOT / "lab" / "test_cases" / "test_cases.json",
+    PROJECT_ROOT / "lab" / "test_cases" / "control_cases.json",
+]
+
 RESULTS_DIR = PROJECT_ROOT / "lab" / "results"
 
 
 def load_test_cases() -> list[dict]:
-    with TEST_CASES_PATH.open("r", encoding="utf-8") as file:
-        test_cases = json.load(file)
+    all_test_cases = []
+    seen_ids = set()
 
-    if not isinstance(test_cases, list):
-        raise ValueError("test_cases.json must contain a JSON array.")
+    for test_file in TEST_CASE_FILES:
+        if not test_file.exists():
+            raise FileNotFoundError(f"Test case file not found: {test_file}")
 
-    return test_cases
+        with test_file.open("r", encoding="utf-8") as file:
+            test_cases = json.load(file)
+
+        if not isinstance(test_cases, list):
+            raise ValueError(
+                f"{test_file.name} must contain a JSON array of test cases."
+            )
+
+        for test_case in test_cases:
+            test_id = test_case.get("id")
+
+            if not test_id:
+                raise ValueError(
+                    f"A test case in {test_file.name} is missing an 'id'."
+                )
+
+            if test_id in seen_ids:
+                raise ValueError(f"Duplicate test ID found: {test_id}")
+
+            seen_ids.add(test_id)
+            all_test_cases.append(test_case)
+
+    return all_test_cases
 
 
 def write_results(results: list[dict], defense_profile: str) -> Path:
