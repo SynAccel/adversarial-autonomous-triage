@@ -13,6 +13,42 @@ ALLOWED_ACTIONS = {"ignore", "create_ticket", "escalate", "contain"}
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROMPTS_DIR = PROJECT_ROOT / "lab" / "prompts"
 
+GEMINI_TRIAGE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {
+            "type": "string",
+            "description": (
+                "A concise analyst-facing summary of the security event. "
+                "Do not reveal secrets, credentials, API keys, or tokens."
+            ),
+        },
+        "risk_rating": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "The assessed security risk level.",
+        },
+        "recommended_action": {
+            "type": "string",
+            "enum": ["ignore", "create_ticket", "escalate", "contain"],
+            "description": "The recommended security response action.",
+        },
+        "requires_human_review": {
+            "type": "boolean",
+            "description": (
+                "Whether a human analyst must validate the triage decision."
+            ),
+        },
+    },
+    "required": [
+        "summary",
+        "risk_rating",
+        "recommended_action",
+        "requires_human_review",
+    ],
+    "additionalProperties": False,
+}
+
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -155,26 +191,37 @@ def mock_llm_response(
     }
 
 
-def call_openai_llm(
+def call_gemini_llm(
     system_prompt: str,
     user_prompt: str,
 ) -> tuple[dict[str, Any], str]:
-    from openai import OpenAI
+    from google import genai
 
-    model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    client = OpenAI()
+    if not os.getenv("GEMINI_API_KEY"):
+        raise EnvironmentError(
+            "GEMINI_API_KEY is not set. Add it as a GitHub Codespaces Secret "
+            "and restart the Codespace."
+        )
 
-    response = client.chat.completions.create(
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+    response = client.models.generate_content(
         model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        response_format={"type": "json_object"},
-        temperature=0,
+        contents=user_prompt,
+        config={
+            "system_instruction": system_prompt,
+            "temperature": 0,
+            "response_mime_type": "application/json",
+            "response_json_schema": GEMINI_TRIAGE_SCHEMA,
+        },
     )
 
-    raw_response = response.choices[0].message.content
+    raw_response = response.text
+
+    if not raw_response:
+        raise ValueError("Gemini returned an empty response.")
+
     return json.loads(raw_response), raw_response
 
 
@@ -226,16 +273,16 @@ def triage_event(
             parsed_output = mock_llm_response(alert, log_snippet, note)
             raw_response = json.dumps(parsed_output)
 
-        elif provider == "openai":
-            parsed_output, raw_response = call_openai_llm(
+        elif provider == "gemini":
+            parsed_output, raw_response = call_gemini_llm(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
             )
-            model_name = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+            model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
         else:
             raise ValueError(
-                "Unsupported provider. Use 'mock' now, or 'openai' after configuration."
+                "Unsupported provider. Use 'mock' or 'gemini'."
             )
 
         validated_output = validate_triage_output(parsed_output)
