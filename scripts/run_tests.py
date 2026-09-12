@@ -65,6 +65,7 @@ def write_results(results: list[dict], defense_profile: str) -> Path:
 def main() -> None:
     provider = "mock"
     defense_profile = "baseline"
+    prompt_version = "baseline_v1"
 
     test_cases = load_test_cases()
     results = []
@@ -79,6 +80,7 @@ def main() -> None:
             note=test_input["note"],
             defense_profile=defense_profile,
             provider=provider,
+            prompt_version=prompt_version,
         )
 
         results.append(result)
